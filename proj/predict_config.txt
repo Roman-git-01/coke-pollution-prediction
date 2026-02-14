@@ -1,0 +1,17 @@
+{
+  "n_s_pred": 30,
+  "features_list": [
+    "hour",
+    "lag_0",
+    "lag_5",
+    "lag_20",
+    "lag_100",
+    "rolling_mean"
+  ],
+  "target_cols": [
+    "NO", 
+    "CO",
+    "NO2",
+    "SO2"
+  ]
+}

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Контроль за выбросами · NorthTech</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f4f8;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: #1e293b;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            padding: 12px 16px 8px 16px;
+            gap: 12px;
+        }
+
+        /* Верхняя панель */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            border-radius: 28px;
+            padding: 10px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+
+        .title-section h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #0f172a;
+        }
+
+        .title-section small {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-left: 8px;
+            font-weight: 400;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.15s;
+            color: #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .header-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .header-btn.primary {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 6px 12px rgba(37,99,235,0.2);
+        }
+
+        .header-btn.primary:hover {
+            background: #1d4ed8;
+        }
+
+        /* Основная сетка: график слева, затем две колонки с карточками, затем описание */
+        .main-panel {
+            display: grid;
+            grid-template-columns: 2fr 0.9fr 0.9fr 1fr;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        /* Общий стиль колонок */
+        .column {
+            background: white;
+            border-radius: 28px;
+            padding: 16px 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .column h3 {
+            font-weight: 500;
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 4px;
+            padding-left: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Контейнер для карточек – занимает всё оставшееся место */
+        .substance-grid {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* Карточка-прямоугольник */
+        .substance-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            border: 2px solid transparent;
+            transition: border 0.1s;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            width: 100%;
+            flex: 1;  /* равномерное распределение высоты */
+            min-height: 60px; /* минимальная высота, чтобы текст не сжимался слишком сильно */
+        }
+
+        .substance-name {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+        }
+
+        .substance-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .substance-unit {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        /* Обводка по риску */
+        .risk-2 {
+            border-color: #eab308;
+        }
+        .risk-3 {
+            border-color: #f97316;
+        }
+        .risk-4 {
+            border-color: #ef4444;
+        }
+
+        /* Блок графика */
+        .chart-area {
+            background: white;
+            border-radius: 28px;
+            padding: 12px 12px 8px 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .chart-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .selector-panel {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 8px 4px 8px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .substance-btn {
+            background: #e2e8f0;
+            border: none;
+            border-radius: 40px;
+            padding: 6px 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.15s;
+            min-width: 70px;
+        }
+
+        .substance-btn.active {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 6px 12px rgba(37,99,235,0.25);
+        }
+
+        /* Правая колонка с описанием и рекомендациями */
+        .right-info {
+            background: white;
+            border-radius: 28px;
+            padding: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .info-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 16px;
+            flex-shrink: 0;
+        }
+
+        .info-card .label {
+            font-weight: 600;
+            color: #334155;
+            letter-spacing: 0.3px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: block;
+            opacity: 0.7;
+        }
+
+        .description-text {
+            color: #0f172a;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .actions-list {
+            list-style: none;
+            padding-left: 4px;
+        }
+
+        .actions-list li {
+            margin-bottom: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            font-size: 0.95rem;
+        }
+
+        .actions-list li::before {
+            content: "•";
+            color: #2563eb;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Модальные окна */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 40px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 28px 24px;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            line-height: 1;
+            cursor: pointer;
+            color: #94a3b8;
+            padding: 0 10px;
+        }
+
+        .close-btn:hover {
+            color: #1e293b;
+        }
+
+        .norms-table, .journal-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .norms-table th, .journal-table th {
+            text-align: left;
+            font-weight: 500;
+            color: #64748b;
+            padding-bottom: 12px;
+        }
+
+        .norms-table td, .journal-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .journal-table td {
+            font-family: monospace;
+        }
+
+        .journal-time {
+            color: #475569;
+        }
+
+        /* Адаптация */
+        @media (max-width: 1100px) {
+            .main-panel {
+                grid-template-columns: 1.5fr 0.9fr 0.9fr 1.2fr;
+            }
+        }
+        @media (max-width: 900px) {
+            .main-panel {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+                overflow-y: auto;
+            }
+            .chart-area {
+                grid-column: span 2;
+            }
+            .right-info {
+                grid-column: span 2;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="dashboard">
+    <!-- Верхняя панель -->
+    <div class="header">
+        <div class="title-section">
+            <h1>Контроль за выбросами <small>ИЗАВ №0280101 (КБ-11)</small></h1>
+        </div>
+        <div class="header-buttons">
+            <button class="header-btn" id="openNormsBtn">Нормы</button>
+            <button class="header-btn primary" id="openJournalBtn">Журнал</button>
+        </div>
+    </div>
+
+    <!-- Основная часть: график слева, затем карточки 0с и 30с (вертикально), затем описание/рекомендации -->
+    <div class="main-panel">
+        <!-- График + кнопки (самый левый) -->
+        <div class="chart-area">
+            <div class="chart-container">
+                <canvas id="historyChart"></canvas>
+            </div>
+            <div class="selector-panel" id="substanceSelector"></div>
+        </div>
+        <!-- Колонка +0с с вертикальными прямоугольниками -->
+        <div class="column">
+            <h3>+0 секунд</h3>
+            <div class="substance-grid" id="col0"></div>
+        </div>
+        <!-- Колонка +30с с вертикальными прямоугольниками -->
+        <div class="column">
+            <h3>+30 секунд</h3>
+            <div class="substance-grid" id="col30"></div>
+        </div>
+        <!-- Правая колонка: описание и рекомендации -->
+        <div class="right-info">
+            <div class="info-card">
+                <span class="label">📋 Описание</span>
+                <div class="description-text" id="descriptionText">Загрузка...</div>
+            </div>
+            <div class="info-card">
+                <span class="label">⚡ Рекомендации</span>
+                <ul class="actions-list" id="actionsList">
+                    <li>Загрузка...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно Нормы -->
+<div class="modal" id="normsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Нормативы ИЗАВ</h2>
+            <button class="close-btn" id="closeNormsBtn">&times;</button>
+        </div>
+        <table class="norms-table">
+            <thead><tr><th>Вещество</th><th>Норматив (г/с)</th></tr></thead>
+            <tbody>
+                <tr><td>Углерода оксид (CO)</td><td>79.5</td></tr>
+                <tr><td>Сера диоксид (SO2)</td><td>34.583185</td></tr>
+                <tr><td>Азота оксид (NO)</td><td>6.7722</td></tr>
+                <tr><td>Азота диоксид (NO2)</td><td>19.138889</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно Журнал предсказанных значений -->
+<div class="modal" id="journalModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Журнал предсказаний (+30с)</h2>
+            <button class="close-btn" id="closeJournalBtn">&times;</button>
+        </div>
+        <table class="journal-table" id="journalTableBody">
+            <thead><tr><th>Время</th><th>CO</th><th>NO</th><th>NO₂</th><th>SO₂</th></tr></thead>
+            <tbody id="journalRows"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const API_BASE = 'http://46.173.26.164:8000/api';
+        const SUBSTANCES = ['CO', 'NO', 'NO2', 'SO2'];
+        const COLOR_MAP = { 'CO': '#ef4444', 'NO': '#3b82f6', 'NO2': '#eab308', 'SO2': '#8b5cf6' };
+
+        // Состояние
+        let selectedSubstances = ['CO', 'NO'];
+        let historyData = { CO: [], NO: [], NO2: [], SO2: [] };
+        let chartInstance = null;
+        let journalEntries = []; // последние 20 записей { time, CO, NO, NO2, SO2 }
+
+        // DOM
+        const col0Div = document.getElementById('col0');
+        const col30Div = document.getElementById('col30');
+        const selectorPanel = document.getElementById('substanceSelector');
+        const descriptionEl = document.getElementById('descriptionText');
+        const actionsEl = document.getElementById('actionsList');
+        const normsModal = document.getElementById('normsModal');
+        const journalModal = document.getElementById('journalModal');
+        const openNormsBtn = document.getElementById('openNormsBtn');
+        const closeNormsBtn = document.getElementById('closeNormsBtn');
+        const openJournalBtn = document.getElementById('openJournalBtn');
+        const closeJournalBtn = document.getElementById('closeJournalBtn');
+        const journalRows = document.getElementById('journalRows');
+
+        // --- Рендер кнопок выбора ---
+        function renderSelectorButtons() {
+            selectorPanel.innerHTML = '';
+            SUBSTANCES.forEach(sub => {
+                const btn = document.createElement('button');
+                btn.className = `substance-btn ${selectedSubstances.includes(sub) ? 'active' : ''}`;
+                btn.dataset.substance = sub;
+                btn.textContent = sub;
+                btn.addEventListener('click', () => handleSubstanceClick(sub));
+                selectorPanel.appendChild(btn);
+            });
+        }
+
+        function handleSubstanceClick(sub) {
+            const index = selectedSubstances.indexOf(sub);
+            if (index !== -1) {
+                selectedSubstances.splice(index, 1);
+            } else {
+                if (selectedSubstances.length >= 2) selectedSubstances.shift();
+                selectedSubstances.push(sub);
+            }
+            renderSelectorButtons();
+            updateChart();
+        }
+
+        // --- Заполнение карточек (прямоугольники) ---
+        function updateSubstanceCards(container, values, riskMap) {
+            if (!container) return;
+            container.innerHTML = '';
+            SUBSTANCES.forEach(sub => {
+                const val = values[sub]?.toFixed(3) ?? '—';
+                const riskLevel = riskMap?.[sub] || 1;
+                const card = document.createElement('div');
+                card.className = `substance-card ${riskLevel >= 2 ? 'risk-' + riskLevel : ''}`;
+                card.innerHTML = `
+                    <span class="substance-name">${sub}</span>
+                    <span class="substance-value">${val}</span>
+                    <span class="substance-unit">г/с</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- Добавление записи в журнал ---
+        function addJournalEntry(predData) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = {
+                time: timeStr,
+                CO: predData.CO?.toFixed(3) ?? '—',
+                NO: predData.NO?.toFixed(3) ?? '—',
+                NO2: predData.NO2?.toFixed(3) ?? '—',
+                SO2: predData.SO2?.toFixed(3) ?? '—'
+            };
+            journalEntries.unshift(entry);
+            if (journalEntries.length > 20) journalEntries.pop();
+            renderJournal();
+        }
+
+        function renderJournal() {
+            if (!journalRows) return;
+            journalRows.innerHTML = journalEntries.map(e => `
+                <tr>
+                    <td class="journal-time">${e.time}</td>
+                    <td>${e.CO}</td>
+                    <td>${e.NO}</td>
+                    <td>${e.NO2}</td>
+                    <td>${e.SO2}</td>
+                </tr>
+            `).join('');
+        }
+
+        // --- Обновление графика ---
+        function updateChart() {
+            if (!chartInstance) {
+                const ctx = document.getElementById('historyChart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        interaction: { mode: 'index' },
+                        scales: {
+                            y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'г/с' } },
+                            y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'г/с' }, grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+            }
+
+            if (selectedSubstances.length === 0) {
+                chartInstance.data.labels = [];
+                chartInstance.data.datasets = [];
+                chartInstance.update();
+                return;
+            }
+
+            const labels = Array.from({ length: 100 }, (_, i) => `-${(99 - i) * 3}c`);
+            const datasets = [];
+
+            selectedSubstances.forEach((sub, idx) => {
+                const values = historyData[sub] || [];
+                if (values.length === 0) return;
+                datasets.push({
+                    label: sub,
+                    data: values,
+                    borderColor: COLOR_MAP[sub] || '#000',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    tension: 0.2,
+                    yAxisID: idx === 0 ? 'y' : 'y1'
+                });
+            });
+
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets = datasets;
+            chartInstance.update();
+        }
+
+        // --- Загрузка всех данных ---
+        async function fetchAll() {
+            try {
+                const [currentRes, predRes, riskRes, descRes, actionsRes, historyRes] = await Promise.allSettled([
+                    fetch(`${API_BASE}/current`).then(r => r.json()),
+                    fetch(`${API_BASE}/pred_val`).then(r => r.json()),
+                    fetch(`${API_BASE}/risk`).then(r => r.json()),
+                    fetch(`${API_BASE}/description`).then(r => r.text()),
+                    fetch(`${API_BASE}/actions`).then(r => r.json()),
+                    fetch(`${API_BASE}/history`).then(r => r.json())
+                ]);
+
+                const risk = riskRes.status === 'fulfilled' ? riskRes.value : {};
+
+                if (currentRes.status === 'fulfilled') {
+                    updateSubstanceCards(col0Div, currentRes.value, risk);
+                }
+                if (predRes.status === 'fulfilled') {
+                    updateSubstanceCards(col30Div, predRes.value, risk);
+                    addJournalEntry(predRes.value); // сохраняем в журнал
+                }
+                if (descRes.status === 'fulfilled') {
+                    descriptionEl.textContent = descRes.value;
+                }
+                if (actionsRes.status === 'fulfilled' && Array.isArray(actionsRes.value)) {
+                    actionsEl.innerHTML = actionsRes.value.map(a => `<li>${a}</li>`).join('');
+                }
+                if (historyRes.status === 'fulfilled') {
+                    historyData = historyRes.value;
+                    updateChart();
+                }
+            } catch (e) {
+                console.warn('Ошибка загрузки:', e);
+            }
+        }
+
+        // --- Инициализация и периодическое обновление ---
+        renderSelectorButtons();
+        fetchAll();
+
+        // Каждые 3 сек обновляем current, pred, risk, desc, actions и журнал
+        setInterval(() => {
+            Promise.allSettled([
+                fetch(`${API_BASE}/current`).then(r => r.json()),
+                fetch(`${API_BASE}/pred_val`).then(r => r.json()),
+                fetch(`${API_BASE}/risk`).then(r => r.json()),
+                fetch(`${API_BASE}/description`).then(r => r.text()),
+                fetch(`${API_BASE}/actions`).then(r => r.json())
+            ]).then(([curr, pred, risk, desc, acts]) => {
+                const riskVal = risk.status === 'fulfilled' ? risk.value : {};
+                if (curr.status === 'fulfilled') {
+                    updateSubstanceCards(col0Div, curr.value, riskVal);
+                }
+                if (pred.status === 'fulfilled') {
+                    updateSubstanceCards(col30Div, pred.value, riskVal);
+                    addJournalEntry(pred.value);
+                }
+                if (desc.status === 'fulfilled') descriptionEl.textContent = desc.value;
+                if (acts.status === 'fulfilled' && Array.isArray(acts.value)) {
+                    actionsEl.innerHTML = acts.value.map(a => `<li>${a}</li>`).join('');
+                }
+            }).catch(console.warn);
+        }, 3000);
+
+        // История каждые 10 сек
+        setInterval(() => {
+            fetch(`${API_BASE}/history`)
+                .then(r => r.json())
+                .then(data => {
+                    historyData = data;
+                    updateChart();
+                })
+                .catch(console.warn);
+        }, 10000);
+
+        // --- Модальные окна ---
+        openNormsBtn.addEventListener('click', () => normsModal.classList.add('show'));
+        closeNormsBtn.addEventListener('click', () => normsModal.classList.remove('show'));
+        normsModal.addEventListener('click', (e) => { if (e.target === normsModal) normsModal.classList.remove('show'); });
+
+        openJournalBtn.addEventListener('click', () => journalModal.classList.add('show'));
+        closeJournalBtn.addEventListener('click', () => journalModal.classList.remove('show'));
+        journalModal.addEventListener('click', (e) => { if (e.target === journalModal) journalModal.classList.remove('show'); });
+    })();
+</script>
+</body>
+</html>
